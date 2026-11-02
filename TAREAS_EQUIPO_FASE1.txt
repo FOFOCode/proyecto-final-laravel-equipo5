@@ -1,0 +1,259 @@
+================================================================================
+GUIA DE TRABAJO EN EQUIPO - FASE 1 (AVANCE 30% - 50%)
+PROYECTO FINAL: RESTAURANTE (MENÚ Y PEDIDOS) - CASO 5
+ASIGNATURA: Desarrollo Web con Software Libre - UNICAES
+FECHA DE PRESENTACIÓN: 12 de noviembre (Grupo Rodolfo)
+================================================================================
+
+¡Hola equipo! (Diego, Miguel, Kendel, Rodolfo)
+Para cumplir con los requisitos de la docente, el sistema se construye en dos fases.
+En esta primera entrega debemos dejar terminada al 100% la base de datos, los modelos,
+los datos de prueba (seeders/factories), las rutas de lectura, el layout base y las
+vistas de consulta (listado paginado y ficha de detalle).
+
+Rodolfo ya completó el Avance 1:
+- Inicialización limpia de Laravel 13.
+- Configuración de contenedor Docker Compose (MySQL 8.0 en puerto 3306).
+- Variables de entorno en .env y .env.example.
+- Creación y verificación de TODAS las migraciones de la base de datos:
+  * categorias
+  * platillos
+  * pedidos
+  * detalle_pedidos
+  con llaves foráneas, tipos adecuados (decimal, boolean, enum), restricciones
+  restrictOnDelete / cascadeOnDelete y etiquetas [MIGRACION] y [RELACION].
+- Hoja de estilos CSS propia y moderna en public/css/estilos.css.
+- Imagen por defecto en public/images/default-platillo.svg y symlink de storage.
+- README.md inicial completo con Diagrama Entidad-Relación en formato Mermaid.
+
+--------------------------------------------------------------------------------
+REGLAS OBLIGATORIAS DE GITHUB Y EVALUACIÓN (¡LEER CON ATENCIÓN!)
+--------------------------------------------------------------------------------
+1. Commits mínimos requeridos para la Fase 1:
+   - Mínimo 12 commits en total en el repositorio.
+   - Mínimo 3 commits por cada integrante.
+   - Los commits deben realizarse en 2 días diferentes o más. (No dejar todo para
+     la víspera de la entrega).
+2. Formato de Conventional Commits:
+   - feat: para nuevas funcionalidades (ej: feat(models): crea modelo Platillo)
+   - fix: para correcciones (ej: fix(views): corrige enlace de paginación)
+   - style: para estilos visuales o vistas (ej: style(ui): crea layout app)
+   - docs: para documentación (ej: docs(readme): actualiza integrantes)
+   - chore: para tareas de configuración
+3. PROHIBIDO SUBIR AL REPOSITORIO:
+   - El archivo .env (cada quien tiene el suyo localmente; solo se sube .env.example).
+   - La carpeta /vendor (se instala con composer install).
+   - La carpeta /public/storage con imágenes reales.
+4. Etiqueta final de versión:
+   - Al terminar todos sus aportes, se creará el tag v1.0:
+     git tag -a v1.0 -m "Fase 1 completada"
+     git push origin v1.0
+
+================================================================================
+ASIGNACIÓN DE TAREAS POR INTEGRANTE
+================================================================================
+
+--------------------------------------------------------------------------------
+1. TAREAS PARA DIEGO: MODELOS ELOQUENT Y RELACIONES
+--------------------------------------------------------------------------------
+Objetivo: Representar cada tabla con su modelo Eloquent en app/Models/, definir
+sus relaciones bidireccionales, sus propiedades $fillable y $casts, e incluir
+las etiquetas [ENCAPSULAMIENTO] y [RELACION].
+
+Archivos a crear/modificar:
+a) app/Models/Categoria.php
+   - Crear con: php artisan make:model Categoria
+   - $fillable = ['nombre', 'descripcion', 'activo']; // [ENCAPSULAMIENTO]
+   - $casts = ['activo' => 'boolean'];
+   - Relación con Platillo:
+     public function platillos() // [RELACION]
+     {
+         return $this->hasMany(Platillo::class);
+     }
+
+b) app/Models/Platillo.php
+   - Crear con: php artisan make:model Platillo
+   - $fillable = [
+         'categoria_id', 'nombre', 'descripcion', 'precio',
+         'tiempo_preparacion', 'disponible', 'imagen'
+     ]; // [ENCAPSULAMIENTO]
+   - $casts = [
+         'precio' => 'decimal:2',
+         'tiempo_preparacion' => 'integer',
+         'disponible' => 'boolean',
+     ];
+   - Relaciones:
+     public function categoria() // [RELACION]
+     {
+         return $this->belongsTo(Categoria::class);
+     }
+     public function detallePedidos() // [RELACION]
+     {
+         return $this->hasMany(DetallePedido::class);
+     }
+     public function pedidos() // [RELACION]
+     {
+         return $this->belongsToMany(Pedido::class, 'detalle_pedidos')
+                     ->withPivot('cantidad', 'precio_unitario', 'subtotal')
+                     ->withTimestamps();
+     }
+
+c) app/Models/Pedido.php
+   - Crear con: php artisan make:model Pedido
+   - $fillable = ['codigo', 'cliente', 'mesa', 'fecha', 'estado', 'total', 'notas']; // [ENCAPSULAMIENTO]
+   - $casts = [
+         'fecha' => 'datetime',
+         'mesa' => 'integer',
+         'total' => 'decimal:2',
+     ];
+   - Relaciones:
+     public function detalles() // [RELACION]
+     {
+         return $this->hasMany(DetallePedido::class);
+     }
+     public function platillos() // [RELACION]
+     {
+         return $this->belongsToMany(Platillo::class, 'detalle_pedidos')
+                     ->withPivot('cantidad', 'precio_unitario', 'subtotal')
+                     ->withTimestamps();
+     }
+
+d) app/Models/DetallePedido.php
+   - Crear con: php artisan make:model DetallePedido
+   - $fillable = ['pedido_id', 'platillo_id', 'cantidad', 'precio_unitario', 'subtotal']; // [ENCAPSULAMIENTO]
+   - $casts = [
+         'cantidad' => 'integer',
+         'precio_unitario' => 'decimal:2',
+         'subtotal' => 'decimal:2',
+     ];
+   - Relaciones:
+     public function pedido() // [RELACION]
+     {
+         return $this->belongsTo(Pedido::class);
+     }
+     public function platillo() // [RELACION]
+     {
+         return $this->belongsTo(Platillo::class);
+     }
+
+Commits sugeridos para Diego (cumple los 3 commits obligatorios):
+1. feat(models): define modelo Categoria y Platillo con fillable y relaciones
+2. feat(models): implementa modelo Pedido y DetallePedido con relacion N:M
+3. docs(models): documenta etiquetas [ENCAPSULAMIENTO] y [RELACION] en modelos
+
+--------------------------------------------------------------------------------
+2. TAREAS PARA MIGUEL: SEEDERS Y FACTORIES (DATOS DE PRUEBA)
+--------------------------------------------------------------------------------
+Objetivo: Crear los seeders de categorías y la factory de platillos para insertar
+un mínimo de 15 platillos con datos realistas y las 4 categorías del menú.
+
+Archivos a crear/modificar:
+a) database/seeders/CategoriaSeeder.php
+   - Crear con: php artisan make:seeder CategoriaSeeder
+   - Insertar las 4 categorías básicas:
+     * 'Entradas' (activo: true, descripcion: 'Aperitivos y bocadillos para comenzar')
+     * 'Platos fuertes' (activo: true, descripcion: 'Especialidades culinarias y platos principales')
+     * 'Bebidas' (activo: true, descripcion: 'Bebidas frías, calientes, naturales y refrescos')
+     * 'Postres' (activo: true, descripcion: 'Dulces, pasteles y delicias tradicionales')
+
+b) database/factories/PlatilloFactory.php
+   - Crear con: php artisan make:factory PlatilloFactory --model=Platillo
+   - Generar datos creíbles usando faker en español o listas de platillos:
+     * nombre: nombre de platillo apetitoso (ej. "Lasaña Boloñesa Tradicional", "Hamburguesa Gourmet", "Ceviche Mixto", "Tacos de Birria", "Sopa de Mariscos", "Salmón a las Finas Hierbas", "Costillas BBQ", etc.)
+     * descripcion: texto corto explicativo
+     * categoria_id: Categoria::inRandomOrder()->first()->id ?? 1
+     * precio: fake()->randomFloat(2, 3.50, 25.00)
+     * tiempo_preparacion: fake()->numberBetween(10, 45) // Cumple regla 1 a 180 min
+     * disponible: fake()->boolean(90) // 90% disponibles
+     * imagen: null (para que use la imagen por defecto en Fase 1)
+
+c) database/seeders/DatabaseSeeder.php
+   - En el método run():
+     $this->call([
+         CategoriaSeeder::class,
+     ]);
+     Platillo::factory(20)->create(); // Supera el mínimo de 15 registros
+
+Comando de verificación para Miguel:
+php artisan migrate:fresh --seed
+(Debe ejecutarse limpiamente sin errores y dejar 4 categorías y 20 platillos).
+
+Commits sugeridos para Miguel (cumple los 3 commits obligatorios):
+1. feat(seeders): crea CategoriaSeeder con catalogos de entradas, platos fuertes, bebidas y postres
+2. feat(factories): implementa PlatilloFactory con nombres de platillos y precios realistas
+3. feat(seeders): conecta DatabaseSeeder para poblar 20 platillos con migrate:fresh --seed
+
+--------------------------------------------------------------------------------
+3. TAREAS PARA KENDEL: RUTAS, CONTROLADOR Y VISTAS BLADE
+--------------------------------------------------------------------------------
+Objetivo: Implementar el controlador con los métodos de lectura (index y show),
+las rutas con Route::resource, el layout principal y las vistas con el CSS propio
+y la imagen por defecto.
+
+Archivos a crear/modificar:
+a) app/Http/Controllers/PlatilloController.php
+   - Crear con: php artisan make:controller PlatilloController --resource
+   - En index(): // [CRUD-READ]
+     $platillos = Platillo::with('categoria')->paginate(8);
+     return view('platillos.index', compact('platillos'));
+   - En show(Platillo $platillo): // [CRUD-READ]
+     $platillo->load('categoria');
+     return view('platillos.show', compact('platillo'));
+
+b) routes/web.php
+   - Route::redirect('/', '/platillos');
+   - Route::resource('platillos', PlatilloController::class)->only(['index', 'show']);
+
+c) resources/views/layouts/app.blade.php
+   - Layout maestro con <!DOCTYPE html>, <head> con link a asset('css/estilos.css'),
+     navbar con logo del restaurante y enlaces ("Menú de Platillos", "Inicio"),
+     sección @yield('contenido') y pie de página con nombres de los integrantes.
+
+d) resources/views/platillos/index.blade.php
+   - Vista de listado:
+     * Título "Menú del Restaurante".
+     * Grid o tabla de platillos con:
+       - Miniatura: <img src="{{ $platillo->imagen ? asset('storage/'.$platillo->imagen) : asset('images/default-platillo.svg') }}" alt="{{ $platillo->nombre }}" class="dish-card-img">
+       - Nombre del platillo.
+       - Categoría (nombre de la categoría asociada).
+       - Precio formateado: ${{ number_format($platillo->precio, 2) }}.
+       - Tiempo de preparación: {{ $platillo->tiempo_preparacion }} min.
+       - Badge de estado: "Disponible" (verde) o "Agotado" (rojo).
+       - Botón "Ver Detalle" que enlaza a route('platillos.show', $platillo).
+     * Enlaces de paginación: {{ $platillos->links() }}.
+     * Mensaje si la lista está vacía con @forelse ... @empty.
+
+e) resources/views/platillos/show.blade.php
+   - Vista de ficha de detalle:
+     * Botón "← Volver al Menú" (enlace a route('platillos.index')).
+     * Ficha con imagen en tamaño grande (o fallback svg).
+     * Nombre, categoría, precio, tiempo de preparación, estado.
+     * Descripción completa del platillo.
+     * Indicador de que en la Fase 2 se mostrarán aquí los pedidos relacionados.
+
+Commits sugeridos para Kendel (cumple los 3 commits obligatorios):
+1. feat(routes): registra recurso platillos y crea PlatilloController con index y show
+2. style(ui): diseña layout base app.blade.php con navbar y footer usando estilos.css
+3. feat(views): crea vistas de listado paginado y ficha de detalle con imagen por defecto
+
+================================================================================
+RESUMEN DE COMANDOS PARA INICIAR EL PROYECTO CADA INTEGRANTE
+================================================================================
+Cuando Diego, Miguel o Kendel clonen el repositorio en sus computadoras:
+
+1. git clone https://github.com/TU-ORGANIZACION/proyecto-final-laravel-equipo5.git
+2. cd proyecto-final-laravel-equipo5
+3. composer install
+4. cp .env.example .env
+5. php artisan key:generate
+6. Levantar base de datos:
+   - Si tienen Docker: docker compose up -d
+   - Si tienen XAMPP: iniciar MySQL en XAMPP y crear la BD 'restaurante_db'
+7. php artisan migrate:fresh --seed
+8. php artisan storage:link
+9. php artisan serve
+10. Entrar en el navegador a: http://localhost:8000/platillos
+
+¡A romperla equipo! Siguiendo esta guía aseguramos la máxima calificación (100 pts)
+en la rúbrica de la Fase 1.
+================================================================================
