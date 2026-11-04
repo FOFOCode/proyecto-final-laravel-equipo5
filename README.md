@@ -11,8 +11,8 @@
 | :--- | :--- | :--- |
 | **Rodolfo Rivas** | `@rodolforivas` | Arquitectura inicial, Docker, Migraciones BD, Diagrama ER y Documentación |
 | **Diego** | `@[usuario_github_diego]` | Modelos Eloquent, Encapsulamiento y Relaciones |
-| **Miguel** | `@[usuario_github_miguel]` | Seeders y Factories de datos de prueba |
-| **Kendel** | `@[usuario_github_kendel]` | Rutas, Controlador de Platillos, Layout Blade y Vistas |
+| **Miguel** | `@[usuario_github_miguel]` | Asignación pendiente |
+| **Kendel** | `@KendelJhoel` | Seeders, Factories, Rutas, Controlador de Platillos, Layout Blade y Vistas |
 
 *Docente colaboradora agregada al repositorio:* Docente de la asignatura.
 
@@ -210,7 +210,7 @@ erDiagram
   - Hoja de ruta y guía de tareas para el equipo (`TAREAS_EQUIPO_FASE1.txt`).
 - **Diego:**
   - Creación de Modelos Eloquent (`Categoria`, `Platillo`, `Pedido`, `DetallePedido`) con propiedades `$fillable`, `$casts` y métodos de relación bidireccionales.
-- **Miguel:**
+- **Kendel (datos de prueba):**
   - Implementación de `CategoriaSeeder` (catálogos de entradas, platos fuertes, bebidas, postres) y `PlatilloFactory` con datos de prueba realistas (mínimo 15 platillos).
 - **Kendel:**
   - Implementación de `PlatilloController` (métodos `index` y `show`), definición de rutas y maquetación de vistas Blade (`layouts/app.blade.php`, `platillos/index.blade.php`, `platillos/show.blade.php`).

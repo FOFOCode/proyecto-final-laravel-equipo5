@@ -142,7 +142,7 @@ Commits sugeridos para Diego (cumple los 3 commits obligatorios):
 3. docs(models): documenta etiquetas [ENCAPSULAMIENTO] y [RELACION] en modelos
 
 --------------------------------------------------------------------------------
-2. TAREAS PARA MIGUEL: SEEDERS Y FACTORIES (DATOS DE PRUEBA)
+2. TAREAS PARA KENDEL: SEEDERS Y FACTORIES (DATOS DE PRUEBA)
 --------------------------------------------------------------------------------
 Objetivo: Crear los seeders de categorías y la factory de platillos para insertar
 un mínimo de 15 platillos con datos realistas y las 4 categorías del menú.
@@ -174,11 +174,11 @@ c) database/seeders/DatabaseSeeder.php
      ]);
      Platillo::factory(20)->create(); // Supera el mínimo de 15 registros
 
-Comando de verificación para Miguel:
+Comando de verificación para Kendel:
 php artisan migrate:fresh --seed
 (Debe ejecutarse limpiamente sin errores y dejar 4 categorías y 20 platillos).
 
-Commits sugeridos para Miguel (cumple los 3 commits obligatorios):
+Commits sugeridos para Kendel (cumple los 3 commits obligatorios):
 1. feat(seeders): crea CategoriaSeeder con catalogos de entradas, platos fuertes, bebidas y postres
 2. feat(factories): implementa PlatilloFactory con nombres de platillos y precios realistas
 3. feat(seeders): conecta DatabaseSeeder para poblar 20 platillos con migrate:fresh --seed
