@@ -11,8 +11,8 @@
 | :--- | :--- | :--- |
 | **Rodolfo Rivas** | `@rodolforivas` | Arquitectura inicial, Docker, Migraciones BD, Diagrama ER y Documentación |
 | **Diego** | `@[usuario_github_diego]` | Modelos Eloquent, Encapsulamiento y Relaciones |
-| **Miguel** | `@[usuario_github_miguel]` | Asignación pendiente |
-| **Kendel** | `@KendelJhoel` | Seeders, Factories, Rutas, Controlador de Platillos, Layout Blade y Vistas |
+| **Miguel** | `@[usuario_github_miguel]` | Rutas, Controlador de Platillos, Layout Blade y Vistas |
+| **Kendel** | `@KendelJhoel` | Seeders y Factories de datos de prueba |
 
 *Docente colaboradora agregada al repositorio:* Docente de la asignatura.
 
@@ -212,11 +212,30 @@ erDiagram
   - Creación de Modelos Eloquent (`Categoria`, `Platillo`, `Pedido`, `DetallePedido`) con propiedades `$fillable`, `$casts` y métodos de relación bidireccionales.
 - **Kendel (datos de prueba):**
   - Implementación de `CategoriaSeeder` (catálogos de entradas, platos fuertes, bebidas, postres) y `PlatilloFactory` con datos de prueba realistas (mínimo 15 platillos).
-- **Kendel:**
+- **Miguel:**
   - Implementación de `PlatilloController` (métodos `index` y `show`), definición de rutas y maquetación de vistas Blade (`layouts/app.blade.php`, `platillos/index.blade.php`, `platillos/show.blade.php`).
 
 ---
 
 ## 9. Capturas de Pantalla
 
-*(Espacio reservado para las capturas del listado paginado y la ficha de detalle de la Fase 1)*.
+Capturas del listado y la ficha de detalle con los datos de prueba:
+
+![Menú paginado](output/playwright/menu.png)
+![Ficha de detalle](output/playwright/detalle.png)
+
+Vista móvil: [menú](output/playwright/menu-mobile.png) y [detalle](output/playwright/detalle-mobile.png).
+
+## 10. Pruebas
+
+Con las dependencias instaladas y SQLite habilitado, ejecutar:
+
+```bash
+php vendor/phpunit/phpunit/phpunit
+```
+
+La suite usa SQLite en memoria y comprueba datos de prueba, relaciones,
+restricciones, redirección inicial, paginación, detalle, imágenes, estados,
+contenido escapado y rutas de escritura no disponibles.
+Para probar con MySQL, establecer las variables `DB_*` del proceso apuntando
+a una base exclusiva de pruebas: `RefreshDatabase` reconstruye sus tablas.

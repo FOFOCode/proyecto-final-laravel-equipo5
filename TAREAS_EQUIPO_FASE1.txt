@@ -184,7 +184,7 @@ Commits sugeridos para Kendel (cumple los 3 commits obligatorios):
 3. feat(seeders): conecta DatabaseSeeder para poblar 20 platillos con migrate:fresh --seed
 
 --------------------------------------------------------------------------------
-3. TAREAS PARA KENDEL: RUTAS, CONTROLADOR Y VISTAS BLADE
+3. TAREAS PARA MIGUEL: RUTAS, CONTROLADOR Y VISTAS BLADE
 --------------------------------------------------------------------------------
 Objetivo: Implementar el controlador con los métodos de lectura (index y show),
 las rutas con Route::resource, el layout principal y las vistas con el CSS propio
@@ -231,7 +231,7 @@ e) resources/views/platillos/show.blade.php
      * Descripción completa del platillo.
      * Indicador de que en la Fase 2 se mostrarán aquí los pedidos relacionados.
 
-Commits sugeridos para Kendel (cumple los 3 commits obligatorios):
+Commits sugeridos para Miguel (cumple los 3 commits obligatorios):
 1. feat(routes): registra recurso platillos y crea PlatilloController con index y show
 2. style(ui): diseña layout base app.blade.php con navbar y footer usando estilos.css
 3. feat(views): crea vistas de listado paginado y ficha de detalle con imagen por defecto
