@@ -45,74 +45,75 @@ El sistema permite administrar el catálogo de platillos del menú de un restaur
 
 ## 3. Requisitos del Entorno
 
-- **PHP:** 8.3 o superior (recomendado 8.3+)
-- **Composer:** Versión 2.x
-- **Extensiones PHP obligatorias:** `pdo_mysql`, `mbstring`, `openssl`, `tokenizer`, `xml`, `ctype`, `json`, `curl`, `fileinfo`.
-- **Motor de Base de Datos:** MySQL 8.0 (mediante Docker Compose incluido) o MariaDB / MySQL local (XAMPP / Laragon).
-- **Docker & Docker Compose** (opcional pero recomendado para reproducibilidad exacta).
+- Docker Desktop encendido, con contenedores Linux y Docker Compose.
+- Git para clonar el repositorio.
+- No hace falta instalar PHP, Composer, MySQL ni Node en la computadora para esta fase.
 
----
+Laravel y PHP corren en `restaurante_app`; MySQL 8 corre en `restaurante_mysql`.
+La aplicación conecta a `mysql:3306` dentro de la red de Compose, sin SQLite.
+Esta configuración es para desarrollo y presentación local.
 
-## 4. Instalación Paso a Paso
+## 4. Instalación, encendido y apagado
 
-Sigue estos pasos en tu terminal para poner en marcha el proyecto localmente:
+Ejecutar desde la carpeta del proyecto, con Docker Desktop listo.
 
-### 1. Clonar el repositorio
-```bash
-git clone https://github.com/TU-ORGANIZACION/proyecto-final-laravel-equipo5.git
+### Primera instalación (PowerShell)
+
+```powershell
+git clone https://github.com/FOFOCode/proyecto-final-laravel-equipo5.git
 cd proyecto-final-laravel-equipo5
+Copy-Item .env.example .env
+docker compose up -d --build --wait
+docker compose exec app php artisan key:generate
+docker compose restart app
+docker compose exec app php artisan migrate --seed --force
 ```
 
-### 2. Instalar dependencias de PHP
-```bash
-composer install
+Copiar `.env` y generar la clave solo en la primera instalación. Si ya existe,
+conservarlo. Ejecutar el seeder solo sobre una base nueva: los nombres de los
+platillos son únicos. La imagen incluye las dependencias y el enlace de storage.
+
+Abrir **http://localhost:8000/platillos**. No ejecutar `php artisan serve` en la
+computadora: Compose ya inicia el servidor dentro del contenedor.
+
+### Encender en los siguientes días
+
+1. Abrir Docker Desktop y esperar a que el motor esté listo.
+2. Ejecutar:
+
+```powershell
+docker compose up -d --wait
+docker compose ps
 ```
 
-### 3. Configurar variables de entorno
-Copia la plantilla de entorno:
-```bash
-cp .env.example .env
-```
-Genera la llave de la aplicación:
-```bash
-php artisan key:generate
+Los servicios `app` y `mysql` deben aparecer como `healthy`.
+
+### Después de cambiar código o descargar cambios
+
+```powershell
+docker compose up -d --build --wait
+docker compose exec app php artisan migrate --force
 ```
 
-### 4. Iniciar la base de datos con Docker
-Si utilizas Docker, levanta el contenedor de MySQL 8.0:
-```bash
-docker compose up -d
-```
-*(Si usas XAMPP o Laragon, asegúrate de iniciar el servicio MySQL y crear una base de datos llamada `restaurante_db`)*.
+El código se copia a la imagen: reconstruirla para incorporar cambios.
+Si se modifica `.env`, ejecutar `docker compose restart app` para aplicar los cambios.
 
-Verifica que las credenciales en tu archivo `.env` coincidan:
-```env
-DB_CONNECTION=mysql
-DB_HOST=127.0.0.1
-DB_PORT=3306
-DB_DATABASE=restaurante_db
-DB_USERNAME=restaurante_user
-DB_PASSWORD=restaurante_password
+### Apagar
+
+```powershell
+docker compose down
 ```
 
-### 5. Ejecutar migraciones y poblar la base de datos
-```bash
-php artisan migrate:fresh --seed
-```
+Después se puede cerrar Docker Desktop. Los volúmenes conservan los datos y el
+almacenamiento. **No agregar `-v`**: esa opción borra los volúmenes y sus datos.
 
-### 6. Enlazar el almacenamiento público (para imágenes)
-```bash
-php artisan storage:link
-```
+### Ver registros
 
-### 7. Iniciar el servidor local de desarrollo
-```bash
-php artisan serve
+```powershell
+docker compose logs --tail=50 app mysql
 ```
-Abre tu navegador en [http://localhost:8000](http://localhost:8000) o la ruta de platillos en [http://localhost:8000/platillos](http://localhost:8000/platillos).
 
 ---
-
 ## 5. Diagrama Entidad-Relación
 
 ```mermaid
@@ -231,7 +232,7 @@ Vista móvil: [menú](output/playwright/menu-mobile.png) y [detalle](output/play
 Con las dependencias instaladas y SQLite habilitado, ejecutar:
 
 ```bash
-php vendor/phpunit/phpunit/phpunit
+docker compose exec -e DB_CONNECTION=sqlite -e DB_DATABASE=:memory: app php vendor/phpunit/phpunit/phpunit
 ```
 
 La suite usa SQLite en memoria y comprueba datos de prueba, relaciones,

@@ -1,4 +1,28 @@
 services:
+  app:
+    build: .
+    container_name: restaurante_app
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8000:8000"
+    environment:
+      DB_CONNECTION: mysql
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_DATABASE: restaurante_db
+      DB_USERNAME: restaurante_user
+      DB_PASSWORD: restaurante_password
+    volumes:
+      - ./.env:/var/www/html/.env
+      - app_storage:/var/www/html/storage
+    depends_on:
+      mysql:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "php", "-r", "exit(@file_get_contents('http://127.0.0.1:8000/up') === false ? 1 : 0);"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
   mysql:
     image: mysql:8.0
     container_name: restaurante_mysql
@@ -8,8 +32,6 @@ services:
       MYSQL_USER: restaurante_user
       MYSQL_PASSWORD: restaurante_password
       MYSQL_ROOT_PASSWORD: root_password
-    ports:
-      - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
@@ -19,5 +41,6 @@ services:
       retries: 5
 
 volumes:
+  app_storage:
   mysql_data:
     driver: local

@@ -239,21 +239,24 @@ Commits sugeridos para Miguel (cumple los 3 commits obligatorios):
 ================================================================================
 RESUMEN DE COMANDOS PARA INICIAR EL PROYECTO CADA INTEGRANTE
 ================================================================================
-Cuando Diego, Miguel o Kendel clonen el repositorio en sus computadoras:
+Cuando clonen el repositorio (PowerShell, Docker Desktop encendido):
 
-1. git clone https://github.com/TU-ORGANIZACION/proyecto-final-laravel-equipo5.git
+1. git clone https://github.com/FOFOCode/proyecto-final-laravel-equipo5.git
 2. cd proyecto-final-laravel-equipo5
-3. composer install
-4. cp .env.example .env
-5. php artisan key:generate
-6. Levantar base de datos:
-   - Si tienen Docker: docker compose up -d
-   - Si tienen XAMPP: iniciar MySQL en XAMPP y crear la BD 'restaurante_db'
-7. php artisan migrate:fresh --seed
-8. php artisan storage:link
-9. php artisan serve
-10. Entrar en el navegador a: http://localhost:8000/platillos
+3. Copy-Item .env.example .env (solo si no existe .env)
+4. docker compose up -d --build --wait
+5. docker compose exec app php artisan key:generate (solo primera instalación)
+6. docker compose restart app
+7. docker compose exec app php artisan migrate --seed --force (solo base nueva)
+8. Abrir http://localhost:8000/platillos
 
+Encendido habitual: docker compose up -d --wait
+Comprobar: docker compose ps (app y mysql deben estar healthy)
+Apagado: docker compose down (sin -v para conservar datos)
+Después de cambiar código: docker compose up -d --build --wait
+
+Laravel y MySQL corren en Docker. No ejecutar php artisan serve en el host.
+Consultar README.md para el flujo completo.
 ¡A romperla equipo! Siguiendo esta guía aseguramos la máxima calificación (100 pts)
 en la rúbrica de la Fase 1.
 ================================================================================
