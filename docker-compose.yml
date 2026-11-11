@@ -39,6 +39,18 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+  phpmyadmin:
+    image: phpmyadmin:latest
+    container_name: restaurante_phpmyadmin
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8080:80"
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+    depends_on:
+      mysql:
+        condition: service_healthy
 
 volumes:
   app_storage:
