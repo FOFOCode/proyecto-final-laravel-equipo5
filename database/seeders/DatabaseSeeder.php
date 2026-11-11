@@ -18,5 +18,7 @@ class DatabaseSeeder extends Seeder
         $this->call(CategoriaSeeder::class);
 
         Platillo::factory(20)->create();
+
+        $this->call(PedidoSeeder::class);
     }
 }
