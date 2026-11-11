@@ -86,6 +86,13 @@ class PedidoController extends Controller
             ->with('exito', 'Pedido registrado correctamente.');
     }
 
+    public function show(Pedido $pedido): View
+    {
+        $pedido->load(['detalles.platillo.categoria']);
+
+        return view('pedidos.show', compact('pedido'));
+    }
+
     public function index(Request $request): View
     {
         $validated = $request->validate([

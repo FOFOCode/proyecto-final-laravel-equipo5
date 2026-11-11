@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Http\Controllers\PedidoController;
 use App\Models\Categoria;
 use App\Models\Pedido;
 use App\Models\Platillo;
@@ -81,5 +82,31 @@ class PedidoControllerTest extends TestCase
             ->assertSessionHasErrors(['cliente', 'mesa', 'platillos']);
 
         $this->assertDatabaseCount('pedidos', 0);
+    }
+
+    public function test_show_preloads_order_lines_dishes_and_categories_into_ticket_view(): void
+    {
+        $platillo = Platillo::factory()->create(['categoria_id' => Categoria::firstOrFail()->id]);
+        $pedido = Pedido::create([
+            'codigo' => 'PED-TICKET-001',
+            'cliente' => 'Cliente ticket',
+            'mesa' => 3,
+            'fecha' => now(),
+            'estado' => 'pendiente',
+            'total' => 10,
+        ]);
+        $pedido->platillos()->attach($platillo, [
+            'cantidad' => 1,
+            'precio_unitario' => 10,
+            'subtotal' => 10,
+        ]);
+
+        $view = (new PedidoController)->show($pedido);
+        $ticket = $view->getData()['pedido'];
+
+        $this->assertSame('pedidos.show', $view->name());
+        $this->assertTrue($ticket->relationLoaded('detalles'));
+        $this->assertTrue($ticket->detalles->first()->relationLoaded('platillo'));
+        $this->assertTrue($ticket->detalles->first()->platillo->relationLoaded('categoria'));
     }
 }
