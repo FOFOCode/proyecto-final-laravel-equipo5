@@ -1,0 +1,45 @@
+<?php
+
+namespace App\Http\Requests;
+
+use Illuminate\Foundation\Http\FormRequest;
+
+class StorePedidoRequest extends FormRequest
+{
+    public function authorize(): bool
+    {
+        return true;
+    }
+
+    public function rules(): array
+    {
+        return [
+            'cliente' => ['required', 'string', 'max:100'],
+            'mesa' => ['required', 'integer', 'between:1,50'],
+            'notas' => ['nullable', 'string', 'max:500'],
+            'platillos' => ['required', 'array', 'min:1'],
+            'platillos.*.platillo_id' => ['required', 'integer', 'distinct', 'exists:platillos,id'],
+            'platillos.*.cantidad' => ['required', 'integer', 'between:1,20'],
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'cliente.required' => 'El nombre del cliente es obligatorio.',
+            'cliente.max' => 'El nombre del cliente no puede superar los 100 caracteres.',
+            'mesa.required' => 'El número de mesa es obligatorio.',
+            'mesa.integer' => 'El número de mesa debe ser un número entero.',
+            'mesa.between' => 'El número de mesa debe estar entre 1 y 50.',
+            'notas.max' => 'Las notas no pueden superar los 500 caracteres.',
+            'platillos.required' => 'Debe agregar al menos un platillo al pedido.',
+            'platillos.min' => 'Debe agregar al menos un platillo al pedido.',
+            'platillos.*.platillo_id.required' => 'Seleccione un platillo válido.',
+            'platillos.*.platillo_id.distinct' => 'No repita el mismo platillo; ajuste su cantidad.',
+            'platillos.*.platillo_id.exists' => 'Uno de los platillos seleccionados ya no existe.',
+            'platillos.*.cantidad.required' => 'La cantidad de cada platillo es obligatoria.',
+            'platillos.*.cantidad.integer' => 'La cantidad debe ser un número entero.',
+            'platillos.*.cantidad.between' => 'La cantidad debe estar entre 1 y 20.',
+        ];
+    }
+}
