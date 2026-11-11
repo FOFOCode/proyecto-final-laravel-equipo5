@@ -9,10 +9,10 @@
 
 | Nombre Completo | Usuario de GitHub | Rol en el Proyecto |
 | :--- | :--- | :--- |
-| **Rodolfo Rivas** | `@rodolforivas` | Arquitectura inicial, Docker, Migraciones BD, Diagrama ER y Documentación |
-| **Diego** | `@[usuario_github_diego]` | Modelos Eloquent, Encapsulamiento y Relaciones |
-| **Miguel** | `@[usuario_github_miguel]` | Rutas, Controlador de Platillos, Layout Blade y Vistas |
-| **Kendel** | `@KendelJhoel` | Seeders y Factories de datos de prueba |
+| **Rodolfo Rivas** | `@rodolforivas` | Arquitectura inicial, Docker, Migraciones BD, CRUD Platillos, Form Requests, Manejo de Imágenes y Documentación |
+| **Diego** | `@[usuario_github_diego]` | Modelos Eloquent, Relaciones, Módulo de Pedidos y Detalle (Fase 2) |
+| **Miguel** | `@[usuario_github_miguel]` | Rutas base, Panel de control, Reportes de ventas y Seeders de pedidos (Fase 2) |
+| **Kendel** | `@KendelJhoel` | Seeders iniciales, Form Requests de pedidos, Vistas Blade y Diseño responsivo móvil (Fase 2) |
 
 *Docente colaboradora agregada al repositorio:* Docente de la asignatura.
 
@@ -37,8 +37,9 @@ El sistema permite administrar el catálogo de platillos del menú de un restaur
 ### Alcance de la Fase 2 (100% - Proyecto Final):
 - Operaciones completas de escritura del CRUD (`create`, `store`, `edit`, `update`, `destroy` con método DELETE).
 - Subida, reemplazo y eliminación física de fotografías con `Storage` y `storage:link`.
-- Form Requests con validación estricta en servidor y mensajes de error en español.
-- Registro y gestión de pedidos con detalle y cálculo de totales en servidor.
+- Form Requests con validación estricta en servidor y mensajes de error en español (`StorePlatilloRequest`, `UpdatePlatilloRequest`).
+- Buscador por texto y filtros por categoría y disponibilidad en el menú.
+- Registro y gestión de pedidos con detalle y cálculo de subtotales y total en servidor.
 - Panel de control e indicadores agregados (ventas del día, platillos más vendidos, ticket).
 
 ---
@@ -47,73 +48,33 @@ El sistema permite administrar el catálogo de platillos del menú de un restaur
 
 - Docker Desktop encendido, con contenedores Linux y Docker Compose.
 - Git para clonar el repositorio.
-- No hace falta instalar PHP, Composer, MySQL ni Node en la computadora para esta fase.
+- No hace falta instalar PHP, Composer, MySQL ni Node en la computadora si se usa Docker Compose.
+- Alternativa local: PHP 8.3+, Composer 2.x, MySQL/MariaDB (XAMPP o Laragon).
 
 Laravel y PHP corren en `restaurante_app`; MySQL 8 corre en `restaurante_mysql`.
 La aplicación conecta a `mysql:3306` dentro de la red de Compose, sin SQLite.
-Esta configuración es para desarrollo y presentación local.
+
+---
 
 ## 4. Instalación, encendido y apagado
 
-Ejecutar desde la carpeta del proyecto, con Docker Desktop listo.
+Ejecutar desde la carpeta del proyecto, con Docker Desktop listo:
 
-### Primera instalación (PowerShell)
-
-```powershell
+```bash
 git clone https://github.com/FOFOCode/proyecto-final-laravel-equipo5.git
 cd proyecto-final-laravel-equipo5
-Copy-Item .env.example .env
+cp .env.example .env
 docker compose up -d --build --wait
 docker compose exec app php artisan key:generate
 docker compose restart app
 docker compose exec app php artisan migrate --seed --force
+docker compose exec app php artisan storage:link
 ```
 
-Copiar `.env` y generar la clave solo en la primera instalación. Si ya existe,
-conservarlo. Ejecutar el seeder solo sobre una base nueva: los nombres de los
-platillos son únicos. La imagen incluye las dependencias y el enlace de storage.
-
-Abrir **http://localhost:8000/platillos**. No ejecutar `php artisan serve` en la
-computadora: Compose ya inicia el servidor dentro del contenedor.
-
-### Encender en los siguientes días
-
-1. Abrir Docker Desktop y esperar a que el motor esté listo.
-2. Ejecutar:
-
-```powershell
-docker compose up -d --wait
-docker compose ps
-```
-
-Los servicios `app` y `mysql` deben aparecer como `healthy`.
-
-### Después de cambiar código o descargar cambios
-
-```powershell
-docker compose up -d --build --wait
-docker compose exec app php artisan migrate --force
-```
-
-El código se copia a la imagen: reconstruirla para incorporar cambios.
-Si se modifica `.env`, ejecutar `docker compose restart app` para aplicar los cambios.
-
-### Apagar
-
-```powershell
-docker compose down
-```
-
-Después se puede cerrar Docker Desktop. Los volúmenes conservan los datos y el
-almacenamiento. **No agregar `-v`**: esa opción borra los volúmenes y sus datos.
-
-### Ver registros
-
-```powershell
-docker compose logs --tail=50 app mysql
-```
+Abrir **http://localhost:8000/platillos**.
 
 ---
+
 ## 5. Diagrama Entidad-Relación
 
 ```mermaid
@@ -169,12 +130,6 @@ erDiagram
     }
 ```
 
-### Explicación de restricciones e integridad referencial:
-- **`categorias` -> `platillos`:** `restrictOnDelete()` impide eliminar una categoría si existen platillos vinculados a ella, preservando la integridad del catálogo.
-- **`pedidos` -> `detalle_pedidos`:** `cascadeOnDelete()` asegura que al eliminar un pedido se borren automáticamente todas sus líneas de detalle.
-- **`platillos` -> `detalle_pedidos`:** `restrictOnDelete()` protege los registros históricos de pedidos impidiendo que se elimine un platillo que ya ha sido facturado.
-- **Unicidad:** El nombre del platillo es único en la carta (`unique`), así como el código del pedido y el nombre de la categoría.
-
 ---
 
 ## 6. Reglas de Negocio del Caso 5
@@ -182,22 +137,30 @@ erDiagram
 | Regla de Negocio | Fase | Dónde se valida / implementa |
 | :--- | :---: | :--- |
 | **Precio mayor que 0** | F2 | `StorePlatilloRequest` y `UpdatePlatilloRequest` (`numeric`, `gt:0`). |
-| **Tiempo de preparación entre 1 y 180 min** | F2 | Form Requests (`integer`, `between:1,180`). |
-| **Nombre del platillo único** | F1 / F2 | Restricción en migración `unique()` y regla `Rule::unique('platillos')`. |
+| **Tiempo de preparación entre 1 y 180 min** | F2 | `StorePlatilloRequest` y `UpdatePlatilloRequest` (`integer`, `between:1,180`). |
+| **Nombre del platillo único** | F1 / F2 | Restricción en migración `unique()` y reglas `unique:platillos,nombre` e `ignore()` en actualización. |
 | **Cantidad entera mayor que 0 en detalle** | F2 | `StorePedidoRequest` (`integer`, `min:1`). |
-| **No agregar platillos no disponibles** | F2 | Validación en el controlador de pedidos (`Rule::exists()->where('disponible', true)`). |
-| **Subtotal y total calculados en el servidor** | F2 | Controlador `PedidoController`: cálculo matemático estricto en backend sin confiar en datos de cliente. |
+| **No agregar platillos no disponibles** | F2 | Controlador de pedidos `PedidoController` y validación `disponible = true`. |
+| **Subtotal y total calculados en el servidor** | F2 | Controlador `PedidoController`: cálculo estricto en backend sin confiar en datos de cliente. |
+| **Integridad referencial de platillos** | F2 | `PlatilloController@destroy`: no se puede eliminar un platillo que esté asociado a pedidos. |
 
 ---
 
-## 7. Etiquetas `[CONCEPTO]` en el Código
+## 7. Documentación con Etiquetas `[CONCEPTO]` en el Código
 
 | Etiqueta | Archivo de Ejemplo | Propósito |
 | :--- | :--- | :--- |
-| `[MIGRACION]` | `database/migrations/2026_11_02_181033_create_platillos_table.php` | Marca la creación de tablas con tipos adecuados y llaves. |
-| `[RELACION]` | `database/migrations/..._create_platillos_table.php` y `app/Models/Platillo.php` | Llaves foráneas y métodos `belongsTo`, `hasMany`, `belongsToMany`. |
-| `[ENCAPSULAMIENTO]` | `app/Models/Platillo.php` | `$fillable` y `$casts` para protección contra asignación masiva. |
+| `[MIGRACION]` | `database/migrations/2026_11_02_181033_create_platillos_table.php` | Marca la creación de tablas con tipos adecuados y llaves foráneas. |
+| `[RELACION]` | `app/Models/Platillo.php` y `app/Models/Pedido.php` | Métodos de relación Eloquent (`belongsTo`, `hasMany`, `belongsToMany`). |
+| `[ENCAPSULAMIENTO]` | `app/Models/Platillo.php` | Propiedades `$fillable` y `$casts` para protección contra asignación masiva. |
 | `[CRUD-READ]` | `app/Http/Controllers/PlatilloController.php` | Métodos `index()` y `show()` con Route Model Binding y paginación. |
+| `[CRUD-CREATE]` | `app/Http/Controllers/PlatilloController.php` | Método `store()` con Form Request y guardado de imagen. |
+| `[CRUD-UPDATE]` | `app/Http/Controllers/PlatilloController.php` | Método `update()` con reemplazo de imagen y eliminación del archivo previo. |
+| `[CRUD-DELETE]` | `app/Http/Controllers/PlatilloController.php` | Método `destroy()` protegido por verbo HTTP `DELETE` y validación de pedidos. |
+| `[VALIDACION]` | `app/Http/Requests/StorePlatilloRequest.php` | Form Requests con reglas estrictas y mensajes en español por campo. |
+| `[REGLA-NEGOCIO]` | `app/Http/Requests/StorePlatilloRequest.php` y `PlatilloController.php` | Reglas de negocio del restaurante validadas en el servidor. |
+| `[SEGURIDAD]` | `resources/views/platillos/create.blade.php`, `index.blade.php` | Directivas `@csrf`, `@method('DELETE')`, escape automático con `{{ }}` y `$request->validated()`. |
+| `[INYECCION-DEPENDENCIAS]` | `app/Http/Controllers/PlatilloController.php` | Parámetros automáticos inyectados por Laravel (`StorePlatilloRequest`, `Request`, `Platillo`). |
 
 ---
 
@@ -205,38 +168,68 @@ erDiagram
 
 ### Fase 1:
 - **Rodolfo Rivas:**
-  - Configuración del proyecto Laravel 13, contenedor Docker MySQL 8.0, persistencia y `.env.example`.
-  - Creación de migraciones de base de datos (`categorias`, `platillos`, `pedidos`, `detalle_pedidos`) con restricciones de integridad.
+  - Configuración inicial de Laravel 13, contenedor Docker MySQL 8.0, persistencia y `.env.example`.
+  - Creación de migraciones completas de base de datos (`categorias`, `platillos`, `pedidos`, `detalle_pedidos`) con restricciones de integridad.
   - Diseño del Diagrama Entidad-Relación en Mermaid y redacción del README inicial.
   - Hoja de ruta y guía de tareas para el equipo (`TAREAS_EQUIPO_FASE1.txt`).
 - **Diego:**
   - Creación de Modelos Eloquent (`Categoria`, `Platillo`, `Pedido`, `DetallePedido`) con propiedades `$fillable`, `$casts` y métodos de relación bidireccionales.
-- **Kendel (datos de prueba):**
+- **Kendel:**
   - Implementación de `CategoriaSeeder` (catálogos de entradas, platos fuertes, bebidas, postres) y `PlatilloFactory` con datos de prueba realistas (mínimo 15 platillos).
 - **Miguel:**
-  - Implementación de `PlatilloController` (métodos `index` y `show`), definición de rutas y maquetación de vistas Blade (`layouts/app.blade.php`, `platillos/index.blade.php`, `platillos/show.blade.php`).
+  - Implementación inicial de `PlatilloController` (métodos `index` y `show`), definición de rutas y maquetación de vistas Blade (`layouts/app.blade.php`, `platillos/index.blade.php`, `platillos/show.blade.php`).
+
+### Fase 2:
+- **Rodolfo Rivas (Avance Inicial Fase 2):**
+  - Implementación del CRUD completo de Platillos (`create`, `store`, `edit`, `update`, `destroy` mediante HTTP `DELETE`).
+  - Creación de Form Requests en servidor con mensajes en español (`StorePlatilloRequest` y `UpdatePlatilloRequest`).
+  - Gestión integral de imágenes con Laravel `Storage`: subida, reemplazo sin dejar archivos huérfanos y eliminación física en borrado.
+  - Motor de búsqueda por texto y filtros por categoría y disponibilidad en el listado del menú.
+  - Alertas flash de éxito y error en el layout principal.
+  - Suite de pruebas con 21 tests automatizados y redacción de la guía `TAREAS_EQUIPO_FASE2.txt`.
+- **Diego:**
+  - Módulo de Pedidos y Detalle (`PedidoController` con `index`, `create`, `store`, `show`, `updateEstado`), transacciones `DB::transaction` y cálculo estricto de subtotales y total en backend.
+- **Miguel:**
+  - Panel de control y reportes (`PanelController` con métricas de ventas del día, ranking de platillos más vendidos y tickets recientes) más `PedidoSeeder` para datos de prueba.
+- **Kendel:**
+  - Form Requests de pedidos (`StorePedidoRequest`), maquetación de vistas de pedidos (`pedidos/index.blade.php`, `pedidos/create.blade.php`, `pedidos/show.blade.php` con ticket imprimible) y diseño responsive adaptativo a móviles.
 
 ---
 
 ## 9. Capturas de Pantalla
 
-Capturas del listado y la ficha de detalle con los datos de prueba:
+*(Espacio reservado para las capturas de todas las páginas de la aplicación en Fase 2, incluyendo formularios con validación)*.
 
-![Menú paginado](output/playwright/menu.png)
-![Ficha de detalle](output/playwright/detalle.png)
+---
 
-Vista móvil: [menú](output/playwright/menu-mobile.png) y [detalle](output/playwright/detalle-mobile.png).
+## 10. Pruebas Automatizadas
 
-## 10. Pruebas
-
-Con las dependencias instaladas y SQLite habilitado, ejecutar:
+Para ejecutar la suite completa de pruebas:
 
 ```bash
-docker compose exec -e DB_CONNECTION=sqlite -e DB_DATABASE=:memory: app php vendor/phpunit/phpunit/phpunit
+php artisan test
 ```
 
-La suite usa SQLite en memoria y comprueba datos de prueba, relaciones,
-restricciones, redirección inicial, paginación, detalle, imágenes, estados,
-contenido escapado y rutas de escritura no disponibles.
-Para probar con MySQL, establecer las variables `DB_*` del proceso apuntando
-a una base exclusiva de pruebas: `RefreshDatabase` reconstruye sus tablas.
+La suite incluye 21 pruebas de características y unitarias que cubren:
+- Paginación del menú y carga anticipada de categorías.
+- Ficha de detalle con fotografía o imagen por defecto.
+- Escape seguro contra inyecciones XSS.
+- Formulario de creación y almacenamiento de platillos con subida de archivos a Storage.
+- Validación de reglas de negocio en el servidor (precio > 0, tiempo 1 a 180 min, nombre único).
+- Formulario de edición con datos precargados y reemplazo de imagen anterior.
+- Eliminación segura mediante petición HTTP `DELETE`.
+- Bloqueo de eliminación por integridad referencial cuando un platillo está presente en pedidos.
+- Búsqueda por texto y filtros de categoría y disponibilidad.
+
+---
+
+## 11. Cambios respecto a la Fase 1
+
+En cumplimiento con los requisitos de la rúbrica de la Fase 2, se detallan los siguientes cambios y ampliaciones incorporados sobre el código base de la Fase 1:
+
+1. **Habilitación de Operaciones de Escritura en Platillos:** Se habilitaron las rutas de recurso completas (`create`, `store`, `edit`, `update`, `destroy`), sustituyendo el controlador de solo lectura de la primera entrega.
+2. **Validación en Servidor con Form Requests:** Se crearon `StorePlatilloRequest` y `UpdatePlatilloRequest` con validación estricta y mensajes de error en español para todos los campos, verificando que los errores se muestren junto a cada control y que los valores ingresados se conserven con `old()`.
+3. **Manejo de Imágenes con Storage:** Se implementó la subida física de imágenes a `storage/app/public/platillos`, la eliminación automática de fotografías previas al actualizar y la eliminación del archivo al destruir un platillo para evitar archivos huérfanos.
+4. **Búsqueda y Filtros en el Listado:** Se agregó una barra de filtros multicriterio que permite buscar por texto y filtrar simultáneamente por categoría del catálogo y estado de disponibilidad, preservando los parámetros en la paginación con `withQueryString()`.
+5. **Alertas Flash en el Layout:** Se integraron componentes de alerta para `session('exito')` y `session('error')` en `layouts/app.blade.php`.
+6. **Protección de Integridad:** Se programó una verificación que impide eliminar registros de platillos si ya forman parte de líneas de pedidos en la tabla intermedia `detalle_pedidos`.

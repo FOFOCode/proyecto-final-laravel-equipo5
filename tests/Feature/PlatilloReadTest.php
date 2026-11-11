@@ -71,11 +71,4 @@ class PlatilloReadTest extends TestCase
                 ->assertDontSee('<script>alert(1)</script>', false);
         }
     }
-
-    public function test_write_routes_are_not_available(): void
-    {
-        $this->post('/platillos')->assertStatus(405);
-        $this->put('/platillos/1')->assertStatus(405);
-        $this->delete('/platillos/1')->assertStatus(405);
-    }
 }

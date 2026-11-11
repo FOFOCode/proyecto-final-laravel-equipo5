@@ -1,0 +1,276 @@
+================================================================================
+GUIA DE TRABAJO EN EQUIPO - FASE 2 (PROYECTO FINAL 100%)
+CASO 5: RESTAURANTE (MENÚ Y PEDIDOS)
+ASIGNATURA: Desarrollo Web con Software Libre - UNICAES
+DOCENTE COLABORADORA: Revisión clonando repositorio con etiqueta v2.0
+================================================================================
+
+¡Felicidades equipo (Diego, Miguel, Kendel, Rodolfo)!
+La Fase 1 se completó exitosamente con base de datos, modelos, seeders y listados.
+Ahora nos corresponde entregar la FASE 2 (el 100% del proyecto).
+
+Para mantener la misma dinámica colaborativa y equitativa, Rodolfo ya completó
+el primer avance fundamental de la Fase 2:
+- CRUD completo de la entidad principal (Platillos): Create, Store, Edit, Update, Destroy.
+- Manejo profesional de imágenes con Storage: subida, reemplazo sin dejar archivos
+  huérfanos y eliminación física al borrar el registro (más imagen por defecto).
+- Validación robusta en servidor con Form Requests en español:
+  * StorePlatilloRequest
+  * UpdatePlatilloRequest
+  con todas las reglas de negocio (nombre único, precio > 0, tiempo 1 a 180 min).
+- Búsqueda y filtrado multicriterio en el menú (por texto, categoría y disponibilidad).
+- Protección de eliminación con método HTTP DELETE (nunca GET) y validación de
+  integridad (no permite borrar platillos que tengan pedidos asociados).
+- Alertas flash de éxito y error en el layout principal.
+- Suite de pruebas automatizadas con 21 tests y 508 aserciones aprobadas al 100%.
+
+A continuación se detalla la hoja de ruta para DIEGO, MIGUEL y KENDEL para
+completar los módulos restantes y alcanzar la nota máxima (100/100).
+
+================================================================================
+REQUISITOS OBLIGATORIOS DE GITHUB PARA LA FASE 2 (RÚBRICA 9.2)
+================================================================================
+1. Commits nuevos requeridos para Fase 2:
+   - Mínimo 20 commits NUEVOS en el repositorio.
+   - Mínimo 5 commits por integrante en esta fase.
+   - Distribuidos en 3 o más días diferentes.
+2. Uso estricto de Conventional Commits:
+   - feat: nuevas funcionalidades
+   - fix: correcciones
+   - style: cambios visuales o vistas Blade
+   - docs: documentación
+3. NUNCA subir el archivo .env ni la carpeta /vendor ni imágenes reales en public/storage.
+4. Etiqueta final de versión obligatoria:
+   git tag -a v2.0 -m "Entrega Final - Fase 2 al 100%"
+   git push origin v2.0
+
+================================================================================
+ASIGNACIÓN DE TAREAS POR INTEGRANTE
+================================================================================
+
+--------------------------------------------------------------------------------
+1. TAREAS PARA DIEGO: MÓDULO DE PEDIDOS Y DETALLE (ENTIDAD RELACIONADA)
+--------------------------------------------------------------------------------
+Objetivo: Implementar el controlador de pedidos (PedidoController), la lógica de
+cálculo en el servidor de subtotales y total, la transacción en base de datos
+y las acciones de consulta y cambio de estado.
+
+Archivos a crear/modificar:
+a) app/Http/Controllers/PedidoController.php
+   - Crear con: php artisan make:controller PedidoController
+   - Métodos a implementar:
+     * index(Request $request):
+       Listado paginado de pedidos con carga anticipada ('platillos', 'detalles').
+       Permitir filtrar por estado (pendiente, en_preparacion, servido, pagado, cancelado).
+       Etiqueta: // [CRUD-READ]
+     * create():
+       Formulario para nuevo pedido. Enviar platillos disponibles:
+       $platillos = Platillo::where('disponible', true)->with('categoria')->orderBy('nombre')->get();
+     * store(StorePedidoRequest $request):
+       // [CRUD-CREATE] [SEGURIDAD] [REGLA-NEGOCIO]
+       IMPORTANTE: Los precios, subtotales y el total se calculan estrictamente
+       en el servidor con Eloquent/DB Transaction:
+       
+       use Illuminate\Support\Facades\DB;
+       
+       DB::transaction(function () use ($request) {
+           $total = 0;
+           $detallesData = [];
+           
+           // Generar codigo unico, ej: PED-2026-001 o con Str::upper(Str::random(6))
+           $ultimoId = Pedido::max('id') ?? 0;
+           $codigo = 'PED-' . str_pad($ultimoId + 1, 4, '0', STR_PAD_LEFT);
+           
+           $pedido = Pedido::create([
+               'codigo' => $codigo,
+               'cliente' => $request->cliente,
+               'mesa' => $request->mesa,
+               'fecha' => now(),
+               'estado' => 'pendiente',
+               'total' => 0, // Se actualiza al final
+               'notas' => $request->notas,
+           ]);
+           
+           foreach ($request->platillos as $linea) {
+               $platillo = Platillo::findOrFail($linea['platillo_id']);
+               
+               // [REGLA-NEGOCIO] No agregar platillos no disponibles
+               if (!$platillo->disponible) {
+                   throw new \Exception("El platillo {$platillo->nombre} está agotado.");
+               }
+               
+               $cantidad = (int) $linea['cantidad'];
+               $precioUnitario = $platillo->precio; // Congelado al momento del pedido
+               $subtotal = $cantidad * $precioUnitario;
+               $total += $subtotal;
+               
+               DetallePedido::create([
+                   'pedido_id' => $pedido->id,
+                   'platillo_id' => $platillo->id,
+                   'cantidad' => $cantidad,
+                   'precio_unitario' => $precioUnitario,
+                   'subtotal' => $subtotal,
+               ]);
+           }
+           
+           // Actualizar total general calculado en backend
+           $pedido->update(['total' => $total]);
+       });
+       
+       return redirect()->route('pedidos.index')->with('exito', 'Pedido registrado correctamente.');
+     * show(Pedido $pedido):
+       // [CRUD-READ] Vista de Ticket del pedido con sus detalles y platillos cargados.
+       $pedido->load(['detalles.platillo.categoria']);
+       return view('pedidos.show', compact('pedido'));
+     * updateEstado(Request $request, Pedido $pedido):
+       // [CRUD-UPDATE]
+       $request->validate(['estado' => 'required|in:pendiente,en_preparacion,servido,pagado,cancelado']);
+       $pedido->update(['estado' => $request->estado]);
+       return back()->with('exito', 'Estado del pedido actualizado.');
+
+b) routes/web.php
+   - Registrar recurso de pedidos:
+     Route::resource('pedidos', PedidoController::class)->only(['index', 'create', 'store', 'show']);
+     Route::patch('pedidos/{pedido}/estado', [PedidoController::class, 'updateEstado'])->name('pedidos.updateEstado');
+
+Commits sugeridos para Diego (cumple los 5 commits requeridos):
+1. feat(pedidos): crea PedidoController y define rutas en web.php
+2. feat(pedidos): implementa listado paginado index y filtro por estado de pedido
+3. feat(pedidos): implementa store con transaccion DB y calculo de totales en servidor
+4. feat(pedidos): agrega vista de ticket de pedido show con desglose de renglones
+5. feat(pedidos): implementa cambio de estado del pedido con updateEstado
+
+--------------------------------------------------------------------------------
+2. TAREAS PARA MIGUEL: PANEL DE CONTROL Y REPORTES CON CONSULTAS AGREGADAS
+--------------------------------------------------------------------------------
+Objetivo: Implementar el panel de control (PanelController) con las métricas y
+reportes requeridos en la sección 5.6 del Caso 5:
+- Ventas del día (consultas agregadas sum('total')).
+- Platillos más vendidos (agregaciones Eloquent sum('cantidad')).
+- Resumen de pedidos por estado.
+- Seeders de pedidos y detalles para que php artisan migrate:fresh --seed pueble
+  el panel con datos listos para la defensa.
+
+Archivos a crear/modificar:
+a) app/Http/Controllers/PanelController.php
+   - Crear con: php artisan make:controller PanelController
+   - Método index():
+     * $ventasHoy = Pedido::whereDate('fecha', today())
+                          ->where('estado', '!=', 'cancelado')
+                          ->sum('total');
+     * $pedidosHoy = Pedido::whereDate('fecha', today())->count();
+     * $pedidosPendientes = Pedido::whereIn('estado', ['pendiente', 'en_preparacion'])->count();
+     * $platillosMasVendidos = Platillo::with('categoria')
+           ->withSum('detallePedidos as total_vendido', 'cantidad')
+           ->orderByDesc('total_vendido')
+           ->take(5)
+           ->get();
+     * $ventasPorCategoria = Categoria::with(['platillos.detallePedidos'])
+           ->get()
+           ->map(function ($cat) {
+               $total = $cat->platillos->flatMap->detallePedidos->sum('subtotal');
+               return ['nombre' => $cat->nombre, 'total' => $total];
+           });
+     * $ultimosPedidos = Pedido::with('detalles.platillo')->latest('fecha')->take(6)->get();
+     * return view('panel.index', compact(
+           'ventasHoy', 'pedidosHoy', 'pedidosPendientes', 
+           'platillosMasVendidos', 'ventasPorCategoria', 'ultimosPedidos'
+       ));
+
+b) resources/views/panel/index.blade.php
+   - Crear vista del panel con:
+     * Tarjetas de estadísticas resumidas (KPIs: Ventas de Hoy en $, Pedidos Atendidos, En Preparación, Total Platillos).
+     * Tabla o ranking de "Top 5 Platillos Más Vendidos" con cantidad ordenada y categoría.
+     * Tabla de "Últimos Pedidos Registrados" con botón para ver su Ticket.
+
+c) database/seeders/PedidoSeeder.php
+   - Crear con: php artisan make:seeder PedidoSeeder
+   - Generar entre 10 y 15 pedidos de prueba con fechas de hoy y días previos,
+     asociando entre 1 y 4 platillos por pedido con cantidades realistas.
+   - Llamarlo en database/seeders/DatabaseSeeder.php después de Platillo.
+
+d) routes/web.php
+   - Route::get('/panel', [PanelController::class, 'index'])->name('panel.index');
+
+Commits sugeridos para Miguel (cumple los 5 commits requeridos):
+1. feat(seeders): crea PedidoSeeder para poblar pedidos y detalles de prueba
+2. feat(panel): implementa PanelController con consultas agregadas Eloquent
+3. feat(panel): crea vista panel.index con metricas de ventas y platillos mas vendidos
+4. feat(reportes): agrega desglose de ventas por categoria y ultimos tickets
+5. docs(seeders): conecta PedidoSeeder en DatabaseSeeder y verifica migrate:fresh --seed
+
+--------------------------------------------------------------------------------
+3. TAREAS PARA KENDEL: VALIDACIÓN FORM REQUESTS, VISTAS DE PEDIDOS Y DISEÑO
+--------------------------------------------------------------------------------
+Objetivo: Validar los formularios de pedidos en el servidor con Form Requests,
+maquetar las vistas de pedidos (listado, creación y ticket) y asegurar que el
+diseño responsive sea impecable en dispositivos móviles, superando la prueba
+con 'novalidate'.
+
+Archivos a crear/modificar:
+a) app/Http/Requests/StorePedidoRequest.php
+   - Crear con: php artisan make:request StorePedidoRequest
+   - Reglas con mensajes en español:
+     * cliente: ['required', 'string', 'max:100']
+     * mesa: ['required', 'integer', 'between:1,50']
+     * notas: ['nullable', 'string', 'max:500']
+     * platillos: ['required', 'array', 'min:1']
+     * platillos.*.platillo_id: ['required', 'exists:platillos,id']
+     * platillos.*.cantidad: ['required', 'integer', 'min:1', 'max:20']
+   - Mensajes de error en español para cada campo.
+
+b) resources/views/pedidos/index.blade.php
+   - Listado de pedidos:
+     * Tabla con código, mesa, cliente, fecha/hora, total en $, badge de estado.
+     * Filtro rápido por estado con botones o select.
+     * Botón para "Ver Ticket" (route('pedidos.show', $pedido)).
+     * Formulario rápido para actualizar estado (select con opción actual y botón Guardar).
+
+c) resources/views/pedidos/create.blade.php
+   - Formulario para registrar pedido:
+     * Inputs para cliente, mesa y notas con old() y @error.
+     * Lista interactiva o tabla de platillos disponibles con checkbox y selector
+       de cantidad (input type="number" min="1" value="1").
+     * Total proyectado en tiempo real con JavaScript sencillo (opcional) y
+       validación estricta en servidor obligatoria.
+
+d) resources/views/pedidos/show.blade.php
+   - Vista de Ticket del pedido (estilo recibo de restaurante):
+     * Encabezado con Restaurante Equipo 5, Código de Pedido, Fecha y Mesa.
+     * Datos del cliente y notas.
+     * Tabla detallada: Platillo, Categoría, Cantidad, Precio Unitario, Subtotal.
+     * Total general destacado en grande.
+     * Botón para imprimir (window.print()) y botón para volver al listado.
+
+e) Prueba obligatoria de novalidate:
+   - Verificar en el navegador inspeccionando elementos y agregando novalidate
+     a los formularios de platillos y pedidos; confirmar que el servidor rechaza
+     campos vacíos o inválidos mostrando los mensajes de error en rojo.
+
+Commits sugeridos para Kendel (cumple los 5 commits requeridos):
+1. feat(validacion): implementa StorePedidoRequest con reglas y mensajes en español
+2. feat(views): crea vista pedidos.index con listado y badges de estado
+3. feat(views): implementa formulario pedidos.create con seleccion de platillos
+4. feat(views): crea ticket detallado pedidos.show con desglose y estilo imprimible
+5. style(ui): optimiza navegacion y diseno adaptable para telefonos y tabletas
+
+================================================================================
+LISTA DE VERIFICACIÓN FINAL ANTES DE LA DEFENSA (100% EXCELENTE)
+================================================================================
+[ ] El comando: php artisan migrate:fresh --seed corre sin errores.
+[ ] php artisan storage:link está creado.
+[ ] El menú permite buscar por texto, filtrar por categoría y disponibilidad.
+[ ] Se puede crear un platillo nuevo con fotografía y validación en español.
+[ ] Al actualizar un platillo reemplazando la foto, la foto vieja se borra de disco.
+[ ] Al eliminar un platillo se borra su foto; si tiene pedidos, se bloquea con alerta.
+[ ] Se pueden registrar pedidos con varios platillos y el total se calcula en backend.
+[ ] Se pueden ver los tickets de los pedidos con su desglose exacto.
+[ ] El panel (/panel) muestra ventas del día y top platillos más vendidos.
+[ ] Se supera la prueba desactivando validación del navegador con 'novalidate'.
+[ ] El README.md incluye capturas de pantalla de todas las páginas terminadas.
+[ ] Se sube la etiqueta final:
+    git tag -a v2.0 -m "Proyecto Final Fase 2 - 100%"
+    git push origin v2.0
+
+¡Con esta estructura aseguramos los 100 puntos en la defensa final!
+================================================================================
