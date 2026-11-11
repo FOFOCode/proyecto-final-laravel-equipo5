@@ -15,3 +15,4 @@ Route::get('/panel', [PanelController::class, 'index'])->name('panel.index');
 
 Route::get('/pedidos', [PedidoController::class, 'index'])->name('pedidos.index');
 Route::get('/pedidos/create', [PedidoController::class, 'create'])->name('pedidos.create');
+Route::post('/pedidos', [PedidoController::class, 'store'])->name('pedidos.store');
