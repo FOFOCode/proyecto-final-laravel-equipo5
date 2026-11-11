@@ -27,14 +27,18 @@ class StorePedidoRequest extends FormRequest
     {
         return [
             'cliente.required' => 'El nombre del cliente es obligatorio.',
+            'cliente.string' => 'El nombre del cliente debe ser texto.',
             'cliente.max' => 'El nombre del cliente no puede superar los 100 caracteres.',
             'mesa.required' => 'El número de mesa es obligatorio.',
             'mesa.integer' => 'El número de mesa debe ser un número entero.',
             'mesa.between' => 'El número de mesa debe estar entre 1 y 50.',
             'notas.max' => 'Las notas no pueden superar los 500 caracteres.',
+            'notas.string' => 'Las notas deben ser texto.',
             'platillos.required' => 'Debe agregar al menos un platillo al pedido.',
+            'platillos.array' => 'La lista de platillos no es válida.',
             'platillos.min' => 'Debe agregar al menos un platillo al pedido.',
             'platillos.*.platillo_id.required' => 'Seleccione un platillo válido.',
+            'platillos.*.platillo_id.integer' => 'El platillo seleccionado no es válido.',
             'platillos.*.platillo_id.distinct' => 'No repita el mismo platillo; ajuste su cantidad.',
             'platillos.*.platillo_id.exists' => 'Uno de los platillos seleccionados ya no existe.',
             'platillos.*.cantidad.required' => 'La cantidad de cada platillo es obligatoria.',

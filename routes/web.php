@@ -1,8 +1,8 @@
 <?php
 
-use App\Http\Controllers\PlatilloController;
 use App\Http\Controllers\PanelController;
 use App\Http\Controllers\PedidoController;
+use App\Http\Controllers\PlatilloController;
 use Illuminate\Support\Facades\Route;
 
 // Redireccion inicial al menu principal

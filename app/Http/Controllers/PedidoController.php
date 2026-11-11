@@ -6,12 +6,12 @@ use App\Http\Requests\StorePedidoRequest;
 use App\Models\DetallePedido;
 use App\Models\Pedido;
 use App\Models\Platillo;
-use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
-use Illuminate\Validation\ValidationException;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class PedidoController extends Controller
@@ -30,7 +30,7 @@ class PedidoController extends Controller
     {
         $datos = $request->validated();
 
-        $pedido = DB::transaction(function () use ($datos): Pedido {
+        DB::transaction(function () use ($datos): Pedido {
             $lineas = collect($datos['platillos']);
             $platillos = Platillo::query()
                 ->whereIn('id', $lineas->pluck('platillo_id'))
