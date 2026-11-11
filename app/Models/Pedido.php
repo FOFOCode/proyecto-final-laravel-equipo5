@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Pedido extends Model
 {
+    public const ESTADOS = ['pendiente', 'en_preparacion', 'servido', 'pagado', 'cancelado'];
+
     // [ENCAPSULAMIENTO] Campos permitidos para asignacion masiva.
     protected $fillable = ['codigo', 'cliente', 'mesa', 'fecha', 'estado', 'total', 'notas'];
 
