@@ -17,3 +17,4 @@ Route::get('/pedidos', [PedidoController::class, 'index'])->name('pedidos.index'
 Route::get('/pedidos/create', [PedidoController::class, 'create'])->name('pedidos.create');
 Route::post('/pedidos', [PedidoController::class, 'store'])->name('pedidos.store');
 Route::get('/pedidos/{pedido}', [PedidoController::class, 'show'])->name('pedidos.show');
+Route::patch('/pedidos/{pedido}/estado', [PedidoController::class, 'updateEstado'])->name('pedidos.updateEstado');

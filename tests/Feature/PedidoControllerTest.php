@@ -109,4 +109,36 @@ class PedidoControllerTest extends TestCase
         $this->assertTrue($ticket->detalles->first()->relationLoaded('platillo'));
         $this->assertTrue($ticket->detalles->first()->platillo->relationLoaded('categoria'));
     }
+
+    public function test_update_estado_changes_only_to_a_supported_order_state(): void
+    {
+        $pedido = Pedido::create([
+            'codigo' => 'PED-STATE-001',
+            'cliente' => 'Cliente estado',
+            'mesa' => 3,
+            'fecha' => now(),
+            'estado' => 'pendiente',
+            'total' => 10,
+        ]);
+
+        $this->from(route('platillos.index'))
+            ->patch(route('pedidos.updateEstado', $pedido), ['estado' => 'en_preparacion'])
+            ->assertRedirect(route('platillos.index'))
+            ->assertSessionHas('exito');
+
+        $this->assertDatabaseHas('pedidos', [
+            'id' => $pedido->id,
+            'estado' => 'en_preparacion',
+        ]);
+
+        $this->from(route('platillos.index'))
+            ->patch(route('pedidos.updateEstado', $pedido), ['estado' => 'invalido'])
+            ->assertRedirect(route('platillos.index'))
+            ->assertSessionHasErrors('estado');
+
+        $this->assertDatabaseHas('pedidos', [
+            'id' => $pedido->id,
+            'estado' => 'en_preparacion',
+        ]);
+    }
 }

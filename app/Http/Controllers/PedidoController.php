@@ -11,6 +11,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class PedidoController extends Controller
@@ -91,6 +92,21 @@ class PedidoController extends Controller
         $pedido->load(['detalles.platillo.categoria']);
 
         return view('pedidos.show', compact('pedido'));
+    }
+
+    public function updateEstado(Request $request, Pedido $pedido): RedirectResponse
+    {
+        $validated = $request->validate(
+            ['estado' => ['required', Rule::in(Pedido::ESTADOS)]],
+            [
+                'estado.required' => 'Seleccione el nuevo estado del pedido.',
+                'estado.in' => 'El estado seleccionado no es válido.',
+            ],
+        );
+
+        $pedido->update(['estado' => $validated['estado']]);
+
+        return back()->with('exito', 'Estado del pedido actualizado.');
     }
 
     public function index(Request $request): View
