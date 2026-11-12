@@ -83,6 +83,60 @@ class PedidoControllerTest extends TestCase
         $this->assertDatabaseCount('pedidos', 0);
     }
 
+    public function test_order_form_lists_only_available_dishes_and_uses_server_validation(): void
+    {
+        $disponible = Platillo::factory()->create([
+            'categoria_id' => Categoria::firstOrFail()->id,
+            'nombre' => 'Platillo disponible',
+            'disponible' => true,
+        ]);
+        Platillo::factory()->create([
+            'categoria_id' => Categoria::firstOrFail()->id,
+            'nombre' => 'Platillo agotado',
+            'disponible' => false,
+        ]);
+
+        $this->get(route('pedidos.create'))
+            ->assertOk()
+            ->assertSee('novalidate', false)
+            ->assertSee($disponible->nombre)
+            ->assertDontSee('Platillo agotado');
+    }
+
+    public function test_order_list_and_ticket_render_order_details(): void
+    {
+        $platillo = Platillo::factory()->create([
+            'categoria_id' => Categoria::firstOrFail()->id,
+            'nombre' => 'Platillo del ticket',
+        ]);
+        $pedido = Pedido::create([
+            'codigo' => 'PED-VIEW-001',
+            'cliente' => 'Cliente de vista',
+            'mesa' => 3,
+            'fecha' => now(),
+            'estado' => 'pendiente',
+            'total' => 15,
+            'notas' => 'Sin picante',
+        ]);
+        $pedido->detalles()->create([
+            'platillo_id' => $platillo->id,
+            'cantidad' => 2,
+            'precio_unitario' => 7.50,
+            'subtotal' => 15,
+        ]);
+
+        $this->get(route('pedidos.index'))
+            ->assertOk()
+            ->assertSee($pedido->codigo)
+            ->assertSee('Guardar');
+
+        $this->get(route('pedidos.show', $pedido))
+            ->assertOk()
+            ->assertSee('Platillo del ticket')
+            ->assertSee('Sin picante')
+            ->assertSee('$15.00');
+    }
+
     public function test_update_estado_changes_only_to_a_supported_order_state(): void
     {
         $pedido = Pedido::create([
