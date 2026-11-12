@@ -6,18 +6,30 @@ use Illuminate\Foundation\Http\FormRequest;
 
 class StorePedidoRequest extends FormRequest
 {
+    protected function prepareForValidation(): void
+    {
+        // Las cantidades de casillas sin marcar no constituyen lineas del pedido.
+        if (is_array($this->input('platillos'))) {
+            $this->merge(['platillos' => array_filter(
+                $this->input('platillos'),
+                fn ($linea) => ! is_array($linea) || array_key_exists('platillo_id', $linea),
+            )]);
+        }
+    }
+
     public function authorize(): bool
     {
         return true;
     }
 
-    public function rules(): array
+    public function rules(): array // [VALIDACION]
     {
         return [
             'cliente' => ['required', 'string', 'max:100'],
             'mesa' => ['required', 'integer', 'between:1,50'],
             'notas' => ['nullable', 'string', 'max:500'],
             'platillos' => ['required', 'array', 'min:1'],
+            'platillos.*' => ['array'],
             'platillos.*.platillo_id' => ['required', 'integer', 'distinct', 'exists:platillos,id'],
             'platillos.*.cantidad' => ['required', 'integer', 'between:1,20'],
         ];
@@ -37,6 +49,7 @@ class StorePedidoRequest extends FormRequest
             'platillos.required' => 'Debe agregar al menos un platillo al pedido.',
             'platillos.array' => 'La lista de platillos no es válida.',
             'platillos.min' => 'Debe agregar al menos un platillo al pedido.',
+            'platillos.*.array' => 'La línea del pedido no es válida.',
             'platillos.*.platillo_id.required' => 'Seleccione un platillo válido.',
             'platillos.*.platillo_id.integer' => 'El platillo seleccionado no es válido.',
             'platillos.*.platillo_id.distinct' => 'No repita el mismo platillo; ajuste su cantidad.',

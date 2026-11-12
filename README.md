@@ -49,10 +49,10 @@ El sistema permite administrar el catálogo de platillos del menú de un restaur
 - Docker Desktop encendido, con contenedores Linux y Docker Compose.
 - Git para clonar el repositorio.
 - No hace falta instalar PHP, Composer, MySQL ni Node en la computadora si se usa Docker Compose.
-- Alternativa local: PHP 8.3+, Composer 2.x, MySQL/MariaDB (XAMPP o Laragon).
+- La imagen Docker incluye GD (JPEG, PNG, WebP) e intl para imágenes y diagnósticos.
 
 Laravel y PHP corren en `restaurante_app`; MySQL 8 corre en `restaurante_mysql`.
-La aplicación conecta a `mysql:3306` dentro de la red de Compose, sin SQLite.
+La aplicación conecta a `mysql:3306` dentro de la red de Compose. Las pruebas usan SQLite en memoria dentro del contenedor, aislado de MySQL.
 
 ---
 
@@ -136,7 +136,7 @@ erDiagram
 
 | Regla de Negocio | Fase | Dónde se valida / implementa |
 | :--- | :---: | :--- |
-| **Precio mayor que 0** | F2 | `StorePlatilloRequest` y `UpdatePlatilloRequest` (`numeric`, `gt:0`). |
+| **Precio mayor que 0** | F2 | `StorePlatilloRequest` y `UpdatePlatilloRequest` (`numeric`, `between:0.01,999999.99`, `decimal:0,2`). |
 | **Tiempo de preparación entre 1 y 180 min** | F2 | `StorePlatilloRequest` y `UpdatePlatilloRequest` (`integer`, `between:1,180`). |
 | **Nombre del platillo único** | F1 / F2 | Restricción en migración `unique()` y reglas `unique:platillos,nombre` e `ignore()` en actualización. |
 | **Cantidad entera mayor que 0 en detalle** | F2 | `StorePedidoRequest` (`integer`, `min:1`). |
@@ -186,7 +186,7 @@ erDiagram
   - Gestión integral de imágenes con Laravel `Storage`: subida, reemplazo sin dejar archivos huérfanos y eliminación física en borrado.
   - Motor de búsqueda por texto y filtros por categoría y disponibilidad en el listado del menú.
   - Alertas flash de éxito y error en el layout principal.
-  - Suite de pruebas con 21 tests automatizados y redacción de la guía `TAREAS_EQUIPO_FASE2.txt`.
+  - Suite de pruebas automatizadas y redacción de la guía `TAREAS_EQUIPO_FASE2.txt`.
 - **Diego:**
   - Módulo de Pedidos y Detalle (`PedidoController` con `index`, `create`, `store`, `show`, `updateEstado`), transacciones `DB::transaction` y cálculo estricto de subtotales y total en backend.
 - **Miguel:**
@@ -198,7 +198,27 @@ erDiagram
 
 ## 9. Capturas de Pantalla
 
-*(Espacio reservado para las capturas de todas las páginas de la aplicación en Fase 2, incluyendo formularios con validación)*.
+Capturas verificadas en Chromium dentro de Docker el 12/11/2026. Los registros `AUDIT-FIX` son datos temporales de prueba y fueron retirados al terminar.
+
+| Página | Captura |
+|---|---|
+| Menú y filtros | [Menú](docs/capturas/menu-1440.png) |
+| Alta con fotografía | [Crear platillo](docs/capturas/crear-platillo.png) |
+| Ficha con fotografía | [Detalle](docs/capturas/detalle-platillo.png) |
+| Edición y reemplazo de imagen | [Editar](docs/capturas/editar-platillo.png) |
+| Listado, estados y paginación | [Pedidos](docs/capturas/pedidos-1440.png) |
+| Selección parcial de platillos | [Registrar pedido](docs/capturas/crear-pedido.png) |
+| Ticket imprimible | [Ticket](docs/capturas/ticket.png) |
+| Indicadores y reportes | [Panel](docs/capturas/panel-1440.png) |
+| Confirmación de eliminación | [Borrado](docs/capturas/eliminar-exito.png) |
+
+Validaciones del servidor, con los valores conservados:
+
+![Creación con errores en español](docs/capturas/crear-validacion.png)
+![Edición con precio inválido](docs/capturas/editar-validacion.png)
+![Error junto a la cantidad del pedido](docs/capturas/pedido-validacion.png)
+
+Diseño móvil: [edición con imagen](docs/capturas/editar-375.png), [pedidos](docs/capturas/pedidos-375.png) y [panel](docs/capturas/panel-375.png).
 
 ---
 
@@ -207,10 +227,10 @@ erDiagram
 Para ejecutar la suite completa de pruebas:
 
 ```bash
-php artisan test
+docker compose exec app php artisan test
 ```
 
-La suite incluye 21 pruebas de características y unitarias que cubren:
+La suite incluye 35 pruebas de características y unitarias que cubren:
 - Paginación del menú y carga anticipada de categorías.
 - Ficha de detalle con fotografía o imagen por defecto.
 - Escape seguro contra inyecciones XSS.
@@ -233,3 +253,15 @@ En cumplimiento con los requisitos de la rúbrica de la Fase 2, se detallan los 
 4. **Búsqueda y Filtros en el Listado:** Se agregó una barra de filtros multicriterio que permite buscar por texto y filtrar simultáneamente por categoría del catálogo y estado de disponibilidad, preservando los parámetros en la paginación con `withQueryString()`.
 5. **Alertas Flash en el Layout:** Se integraron componentes de alerta para `session('exito')` y `session('error')` en `layouts/app.blade.php`.
 6. **Protección de Integridad:** Se programó una verificación que impide eliminar registros de platillos si ya forman parte de líneas de pedidos en la tabla intermedia `detalle_pedidos`.
+
+## 12. Configuración y verificación de las correcciones
+
+Después de modificar código, reconstruir el contenedor: `docker compose up -d --build --wait`. El código se copia a la imagen; reiniciar solamente no incorpora cambios. Los volúmenes conservan la base y las fotografías.
+
+- Ejecutar pruebas: `docker compose exec app php artisan test`. `phpunit.xml` fuerza SQLite en memoria y `tests/TestCase.php` bloquea otras conexiones antes de migrar. No usar la base de la aplicación para `RefreshDatabase`.
+- Diagnóstico: `docker compose exec app php artisan db:show`.
+- Ventas: importe de todos los pedidos no cancelados, incluidos los no pagados. Atendidos: histórico de servidos y pagados. Se permite cambiar cualquier estado para corregir pedidos.
+- Fechas: almacenamiento UTC, presentación y día del panel en `America/El_Salvador`. Se puede configurar `APP_DISPLAY_TIMEZONE` en `.env` y reiniciar la app.
+- Fotografías: JPEG, PNG o WebP, hasta 2 MB. PHP admite recibir hasta 4 MB para que Laravel pueda mostrar el error de tamaño en español.
+- Apagado sin perder datos: `docker compose down`. Encendido: `docker compose up -d --wait`.
+- Si el puerto 8080 está ocupado, liberar ese puerto o cambiar únicamente el puerto publicado de phpMyAdmin antes de levantar Compose.

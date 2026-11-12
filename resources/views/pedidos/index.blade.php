@@ -6,7 +6,7 @@
     <header class="page-header">
         <div>
             <h1 class="page-title">Pedidos</h1>
-            <p class="page-subtitle">Consulta los pedidos y actualiza su estado.</p>
+            <p class="page-subtitle">Consulta los pedidos y actualiza su estado. Se permite corregir cualquier estado, incluidos pagado y cancelado.</p>
         </div>
         <a class="btn btn-primary" href="{{ route('pedidos.create') }}">+ Registrar pedido</a>
     </header>
@@ -69,7 +69,7 @@
                         <td>{{ $pedido->codigo }}</td>
                         <td>{{ $pedido->mesa }}</td>
                         <td>{{ $pedido->cliente }}</td>
-                        <td>{{ $pedido->fecha->format('d/m/Y H:i') }}</td>
+                        <td>{{ $pedido->fecha->copy()->timezone(config('app.display_timezone'))->format('d/m/Y H:i') }}</td>
                         <td>${{ number_format($pedido->total, 2) }}</td>
                         <td>
                             <span class="badge {{ $pedido->estado === 'cancelado' ? 'badge-danger' : ($pedido->estado === 'pagado' ? 'badge-success' : 'badge-warning') }}">
@@ -102,5 +102,5 @@
         </table>
     </div>
 
-    {{ $pedidos->links() }}
+    {{ $pedidos->links('pagination.menu') }}
 @endsection

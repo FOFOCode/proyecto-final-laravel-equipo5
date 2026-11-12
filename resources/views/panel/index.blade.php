@@ -14,11 +14,12 @@
         <article class="dashboard-card">
             <span class="dashboard-label">Ventas de hoy</span>
             <strong class="dashboard-value">${{ number_format($ventasHoy, 2) }}</strong>
+            <span class="dashboard-hint">Importe registrado hoy, incluye pedidos sin pagar y excluye cancelados.</span>
         </article>
         <article class="dashboard-card">
             <span class="dashboard-label">Pedidos atendidos</span>
             <strong class="dashboard-value">{{ $pedidosAtendidos }}</strong>
-            <span class="dashboard-hint">{{ $pedidosHoy }} pedidos registrados hoy</span>
+            <span class="dashboard-hint">Histórico: servidos y pagados. Hoy se registraron {{ $pedidosHoy }} pedidos.</span>
         </article>
         <article class="dashboard-card">
             <span class="dashboard-label">En preparación</span>
@@ -32,6 +33,7 @@
 
     <section class="dashboard-section">
         <h2 class="section-title">Pedidos por estado</h2>
+        <p class="page-subtitle">Todos los pedidos registrados, sin límite de fecha.</p>
         <div class="table-container">
             <table class="table">
                 <thead>
@@ -54,6 +56,7 @@
 
     <section class="dashboard-section">
         <h2 class="section-title">Platillos más vendidos</h2>
+        <p class="page-subtitle">Unidades históricas en pedidos no cancelados, incluidos los pendientes de pago.</p>
         <div class="table-container">
             <table class="table">
                 <thead>
@@ -80,6 +83,7 @@
 
     <section class="dashboard-section">
         <h2 class="section-title">Ventas por categoría</h2>
+        <p class="page-subtitle">Importe histórico de pedidos no cancelados; no equivale al dinero cobrado.</p>
         <div class="table-container">
             <table class="table">
                 <thead>
@@ -121,7 +125,7 @@
                             <td>{{ $pedido->codigo }}</td>
                             <td>{{ $pedido->cliente }}</td>
                             <td>{{ $pedido->mesa }}</td>
-                            <td>{{ $pedido->fecha->format('d/m/Y H:i') }}</td>
+                            <td>{{ $pedido->fecha->copy()->timezone(config('app.display_timezone'))->format('d/m/Y H:i') }}</td>
                             <td>${{ number_format($pedido->total, 2) }}</td>
                             <td>
                                 <span class="badge {{ $pedido->estado === 'cancelado' ? 'badge-danger' : ($pedido->estado === 'pagado' ? 'badge-success' : 'badge-warning') }}">

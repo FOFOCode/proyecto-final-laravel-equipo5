@@ -1,12 +1,14 @@
 FROM php:8.5-cli
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends libonig-dev libzip-dev unzip \
-    && docker-php-ext-install pdo_mysql mbstring zip \
+    && apt-get install -y --no-install-recommends libonig-dev libzip-dev libpng-dev libjpeg62-turbo-dev libwebp-dev libicu-dev unzip \
+    && docker-php-ext-configure gd --with-jpeg --with-webp \
+    && docker-php-ext-install -j2 pdo_mysql mbstring zip gd intl \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=composer:2 /usr/bin/composer /usr/local/bin/composer
 ENV COMPOSER_ALLOW_SUPERUSER=1
+COPY docker/php.ini /usr/local/etc/php/conf.d/restaurante.ini
 WORKDIR /var/www/html
 
 COPY composer.json composer.lock ./

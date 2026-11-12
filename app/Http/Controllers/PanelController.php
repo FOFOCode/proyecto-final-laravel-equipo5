@@ -6,22 +6,26 @@ use App\Models\Categoria;
 use App\Models\Pedido;
 use App\Models\Platillo;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\View\View;
 
 class PanelController extends Controller
 {
     public function index(): View
     {
-        $ventasHoy = Pedido::whereDate('fecha', today())
+        $inicioHoy = now(config('app.display_timezone'))->startOfDay()->utc();
+        $finHoy = $inicioHoy->copy()->addDay();
+        $pedidosDelDia = Pedido::where('fecha', '>=', $inicioHoy)->where('fecha', '<', $finHoy);
+        $ventasHoy = (clone $pedidosDelDia)
             ->where('estado', '!=', 'cancelado')
             ->sum('total');
-        $pedidosHoy = Pedido::whereDate('fecha', today())->count();
+        $pedidosHoy = (clone $pedidosDelDia)->count();
         $pedidosEnPreparacion = Pedido::where('estado', 'en_preparacion')->count();
         $pedidosAtendidos = Pedido::whereIn('estado', ['servido', 'pagado'])->count();
         $pedidosPorEstado = Pedido::query()
-            ->selectRaw('estado, COUNT(*) as total')
+            ->selectRaw('estado, COUNT(*) as cantidad')
             ->groupBy('estado')
-            ->pluck('total', 'estado');
+            ->pluck('cantidad', 'estado');
         $totalPlatillos = Platillo::count();
 
         $platillosMasVendidos = Platillo::with('categoria')
@@ -36,7 +40,7 @@ class PanelController extends Controller
             ->get();
 
         $ventasPorCategoria = Categoria::with([
-            'platillos.detallePedidos' => fn (Builder $query) => $query->whereHas(
+            'platillos.detallePedidos' => fn (HasMany $query) => $query->whereHas(
                 'pedido',
                 fn (Builder $pedidoQuery) => $pedidoQuery->where('estado', '!=', 'cancelado'),
             ),

@@ -69,13 +69,15 @@
                                         <tr>
                                             <td>
                                                 <input type="checkbox" name="platillos[{{ $platillo->id }}][platillo_id]" value="{{ $platillo->id }}" @checked($seleccionado) aria-label="Agregar {{ $platillo->nombre }}">
+                                                @error('platillos.'.$platillo->id.'.platillo_id')<p class="error-message">{{ $message }}</p>@enderror
                                             </td>
                                             <td>{{ $platillo->nombre }}</td>
                                             <td>{{ $platillo->categoria->nombre }}</td>
                                             <td>${{ number_format($platillo->precio, 2) }}</td>
                                             <td>
                                                 <label class="visually-hidden" for="cantidad-{{ $platillo->id }}">Cantidad de {{ $platillo->nombre }}</label>
-                                                <input class="form-control quantity-input" id="cantidad-{{ $platillo->id }}" name="platillos[{{ $platillo->id }}][cantidad]" type="number" min="1" max="20" value="{{ old('platillos.'.$platillo->id.'.cantidad', 1) }}">
+                                                <input class="form-control quantity-input @error('platillos.'.$platillo->id.'.cantidad') is-invalid @enderror" id="cantidad-{{ $platillo->id }}" name="platillos[{{ $platillo->id }}][cantidad]" type="number" min="1" max="20" value="{{ old('platillos.'.$platillo->id.'.cantidad', 1) }}">
+                                                @error('platillos.'.$platillo->id.'.cantidad')<p class="error-message">{{ $message }}</p>@enderror
                                             </td>
                                         </tr>
                                     @endforeach

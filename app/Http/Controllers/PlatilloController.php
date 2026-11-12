@@ -19,6 +19,18 @@ class PlatilloController extends Controller
      */
     public function index(Request $request): View
     {
+        $request->validate([
+            'buscar' => ['nullable', 'string', 'max:100'],
+            'categoria_id' => ['nullable', 'integer', 'exists:categorias,id'],
+            'disponible' => ['nullable', 'boolean'],
+        ], [
+            'buscar.string' => 'La búsqueda debe ser texto.',
+            'buscar.max' => 'La búsqueda no puede superar los 100 caracteres.',
+            'categoria_id.integer' => 'La categoría seleccionada no es válida.',
+            'categoria_id.exists' => 'La categoría seleccionada no es válida.',
+            'disponible.boolean' => 'La disponibilidad seleccionada no es válida.',
+        ]);
+
         $query = Platillo::with('categoria');
 
         // Filtro por termino de busqueda (nombre o descripcion)
@@ -73,7 +85,14 @@ class PlatilloController extends Controller
 
         $datos['disponible'] = $request->boolean('disponible');
 
-        $platillo = Platillo::create($datos);
+        try {
+            $platillo = Platillo::create($datos);
+        } catch (\Throwable $exception) {
+            if (! empty($datos['imagen'])) {
+                Storage::disk('public')->delete($datos['imagen']);
+            }
+            throw $exception;
+        }
 
         return redirect()->route('platillos.index')
             ->with('exito', 'Platillo "' . $platillo->nombre . '" registrado exitosamente en el menú.');
@@ -111,17 +130,27 @@ class PlatilloController extends Controller
     {
         $datos = $request->validated();
 
-        // Reemplazo seguro de fotografia: elimina la anterior para evitar archivos huerfanos
+        $imagenAnterior = $platillo->imagen;
+        unset($datos['imagen']);
+        // Conservar la foto anterior hasta confirmar la escritura en la base de datos.
         if ($request->hasFile('imagen')) {
-            if ($platillo->imagen && Storage::disk('public')->exists($platillo->imagen)) {
-                Storage::disk('public')->delete($platillo->imagen);
-            }
             $datos['imagen'] = $request->file('imagen')->store('platillos', 'public');
         }
 
         $datos['disponible'] = $request->boolean('disponible');
 
-        $platillo->update($datos);
+        try {
+            $platillo->update($datos);
+        } catch (\Throwable $exception) {
+            if (! empty($datos['imagen'])) {
+                Storage::disk('public')->delete($datos['imagen']);
+            }
+            throw $exception;
+        }
+
+        if ($request->hasFile('imagen') && $imagenAnterior) {
+            Storage::disk('public')->delete($imagenAnterior);
+        }
 
         return redirect()->route('platillos.index')
             ->with('exito', 'Platillo "' . $platillo->nombre . '" actualizado correctamente.');
@@ -140,13 +169,13 @@ class PlatilloController extends Controller
                 ->with('error', 'No se puede eliminar el platillo "' . $platillo->nombre . '" porque ya está registrado en pedidos del restaurante.');
         }
 
-        // Eliminar fotografia fisica asociada si existe
-        if ($platillo->imagen && Storage::disk('public')->exists($platillo->imagen)) {
-            Storage::disk('public')->delete($platillo->imagen);
-        }
-
         $nombre = $platillo->nombre;
         $platillo->delete();
+
+        // Si la BD rechaza el borrado, la fotografia permanece intacta.
+        if ($platillo->imagen) {
+            Storage::disk('public')->delete($platillo->imagen);
+        }
 
         return redirect()->route('platillos.index')
             ->with('exito', 'Platillo "' . $nombre . '" eliminado del menú satisfactoriamente.');

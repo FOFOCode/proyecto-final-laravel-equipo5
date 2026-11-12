@@ -53,6 +53,7 @@ class PanelTest extends TestCase
             ->assertSee($platillo->nombre)
             ->assertSee($pedido->codigo)
             ->assertSee('Pagado')
+            ->assertViewHas('pedidosPorEstado', fn ($estados) => $estados->get('pagado') === 1)
             ->assertViewHas('ventasHoy', fn ($ventas) => (float) $ventas === 20.0)
             ->assertViewHas('platillosMasVendidos', fn ($platillos) => (int) $platillos->first()?->total_vendido === 2)
             ->assertViewHas('ventasPorCategoria', fn ($categorias) => (float) $categorias->first()['total'] === 20.0);
@@ -69,9 +70,9 @@ class PanelTest extends TestCase
 
         foreach (Pedido::with('detalles')->get() as $pedido) {
             $this->assertNotEmpty($pedido->detalles);
-            $this->assertEquals(
-                $pedido->detalles->sum('subtotal'),
-                $pedido->total,
+            $this->assertSame(
+                $pedido->detalles->sum(fn ($detalle) => (int) round((float) $detalle->subtotal * 100)),
+                (int) round((float) $pedido->total * 100),
             );
         }
     }

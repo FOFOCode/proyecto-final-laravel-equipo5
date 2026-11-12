@@ -67,6 +67,9 @@ return [
 
     'timezone' => 'UTC',
 
+    // Fechas almacenadas en UTC; horario del restaurante para vistas y reportes.
+    'display_timezone' => env('APP_DISPLAY_TIMEZONE', 'America/El_Salvador'),
+
     /*
     |--------------------------------------------------------------------------
     | Application Locale Configuration

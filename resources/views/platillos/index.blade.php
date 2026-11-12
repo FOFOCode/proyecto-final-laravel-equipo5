@@ -100,7 +100,7 @@
                         <form 
                             action="{{ route('platillos.destroy', $platillo) }}" 
                             method="POST" 
-                            onsubmit="return confirm('¿Estás seguro de que deseas eliminar el platillo \'{{ $platillo->nombre }}\'? Esta acción no se puede deshacer.');"
+                            onsubmit="return confirm('¿Estás seguro de que deseas eliminar este platillo? Esta acción no se puede deshacer.');"
                             class="delete-form"
                         >
                             @csrf

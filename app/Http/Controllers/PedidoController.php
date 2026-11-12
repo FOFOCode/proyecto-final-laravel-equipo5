@@ -59,15 +59,23 @@ class PedidoController extends Controller
             foreach ($lineas as $indice => $linea) {
                 $platillo = $platillos->get($linea['platillo_id']);
 
+                // [REGLA-NEGOCIO] Disponibilidad verificada bajo bloqueo en la transaccion.
                 if (! $platillo->disponible) {
                     throw ValidationException::withMessages([
                         "platillos.{$indice}.platillo_id" => "El platillo {$platillo->nombre} ya no está disponible.",
                     ]);
                 }
 
+                // [REGLA-NEGOCIO] Precios y totales del servidor calculados en centavos.
                 $precioCentavos = (int) round((float) $platillo->precio * 100);
                 $subtotalCentavos = $precioCentavos * $linea['cantidad'];
                 $totalCentavos += $subtotalCentavos;
+
+                if ($totalCentavos > 9999999999) {
+                    throw ValidationException::withMessages([
+                        'platillos' => 'El total del pedido no puede superar $99,999,999.99.',
+                    ]);
+                }
 
                 DetallePedido::create([
                     'pedido_id' => $pedido->id,
@@ -113,7 +121,7 @@ class PedidoController extends Controller
     {
         $validated = $request->validate([
             'estado' => ['nullable', 'in:'.implode(',', Pedido::ESTADOS)],
-        ]);
+        ], ['estado.in' => 'El estado seleccionado no es válido.']);
 
         $pedidos = Pedido::with(['platillos.categoria', 'detalles.platillo.categoria'])
             ->when($validated['estado'] ?? null, fn ($query, $estado) => $query->where('estado', $estado))

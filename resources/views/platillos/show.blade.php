@@ -104,7 +104,7 @@
                                 </td>
                                 <td>Mesa #{{ $detalle->pedido->mesa }}</td>
                                 <td>{{ $detalle->pedido->cliente }}</td>
-                                <td>{{ $detalle->pedido->fecha->format('d/m/Y H:i') }}</td>
+                                <td>{{ $detalle->pedido->fecha->copy()->timezone(config('app.display_timezone'))->format('d/m/Y H:i') }}</td>
                                 <td>
                                     <span class="badge badge-info">{{ $detalle->cantidad }} u.</span>
                                 </td>

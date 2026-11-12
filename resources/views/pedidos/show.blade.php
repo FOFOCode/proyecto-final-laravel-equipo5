@@ -26,7 +26,7 @@
         </header>
 
         <dl class="ticket-details">
-            <div><dt>Fecha</dt><dd>{{ $pedido->fecha->format('d/m/Y H:i') }}</dd></div>
+            <div><dt>Fecha</dt><dd>{{ $pedido->fecha->copy()->timezone(config('app.display_timezone'))->format('d/m/Y H:i') }}</dd></div>
             <div><dt>Mesa</dt><dd>{{ $pedido->mesa }}</dd></div>
             <div><dt>Cliente</dt><dd>{{ $pedido->cliente }}</dd></div>
             <div><dt>Estado</dt><dd>{{ $etiquetasEstado[$pedido->estado] }}</dd></div>
